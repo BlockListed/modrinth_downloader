@@ -1,0 +1,16 @@
+# Path where the mods should be downloaded
+mod_path = "/minecraft/mods"
+
+# Game version for mods
+version = "1.19.3"
+
+# Loader
+loader = "fabric"
+
+mod_ids = [
+  "gvQqBUqZ", # Lithium
+  "hvFnDODi", # LazyDFU
+  "uXXizFIs", # FerriteCore
+  "H8CaAYZC", # Starlight
+  "fQEb0iXm", # Krypton
+]
