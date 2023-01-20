@@ -10,9 +10,9 @@ fn main() {
 
     let c = configuration::get_config();
 
-    let d = download::Downloader::new(c.mod_path, c.version, c.loader);
+    let d = download::Downloader::new(c.mod_path, c.version.as_str(), c.loader.as_str());
 
     for m in c.mod_ids {
-        d.download(m).unwrap();
+        d.download(&m).unwrap();
     }
 }
