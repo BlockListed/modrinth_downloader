@@ -17,7 +17,7 @@ pub fn hash_file(path: &path::Path) -> Result<String> {
     };
 
     let mut sha = Sha512::new();
-    // Creating a fixed sized buffer to reduce memory size.
+    // Creating a fixed sized buffer to reduce memory usage.
     let mut buf: Vec<u8> = vec![0u8; 2usize.pow(2*10)];
     loop {
         let bytes_read = file.read(&mut buf)?;
