@@ -73,7 +73,7 @@ impl<'a> Downloader<'a> {
         Ok(())
     }
 
-    // Delete file if should download!
+    // Deletes file if should download!
     fn should_download(&self, mod_name: &str, filename: &str, mod_hash: &str) -> bool {
             let fpath = PathBuf::from_str(&(self.mod_path.clone() + filename)).unwrap();
             log::debug!("Testing if should download {}", fpath.to_string_lossy());

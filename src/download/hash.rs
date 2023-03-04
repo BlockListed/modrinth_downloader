@@ -17,7 +17,6 @@ pub fn hash_file(path: &path::Path) -> Result<String> {
     };
 
     let mut sha = Sha512::new();
-    // Creating a fixed sized buffer to reduce memory usage.
     copy(&mut file, &mut sha)?;
     let hash = sha.finalize();
 
