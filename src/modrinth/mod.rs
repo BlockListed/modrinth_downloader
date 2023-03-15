@@ -84,9 +84,10 @@ impl Client {
         game_version: &str,
         loader: &str,
     ) -> Result<ModrinthVersion> {
+        let title = self.get_title(mod_id_or_slug).await?;
         Ok(self
             .get_versions(mod_id_or_slug, game_version, loader)
-            .await?.get(0).ok_or(anyhow::Error::msg(format!("No version of {mod_id_or_slug} exists for {game_version}-{loader}")))?
+            .await?.get(0).ok_or(anyhow::Error::msg(format!("No version of {title} exists for {game_version}-{loader}")))?
             .clone())
     }
 
