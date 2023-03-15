@@ -13,5 +13,5 @@ pub struct Configuration {
 
 pub async fn get_config() -> Configuration {
     let file = read(CONFIG_PATH).await.expect("Couldn't open /config/config.toml");
-    toml::from_slice(file.as_slice()).unwrap()
+    toml::from_slice(file.as_slice()).expect("TOML configuration INVALID!")
 }
