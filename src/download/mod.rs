@@ -29,9 +29,11 @@ impl Downloader {
             loader,
             client,
         }
-    }
+    } 
 
     pub async fn download(&self, mod_id: String) {
+        let title = self.client.get_title(&mod_id).await.expect("Couldn't find mod!");
+
         let version = self
             .client
             .get_newest_version(&mod_id, &self.version, &self.loader)
@@ -46,7 +48,7 @@ impl Downloader {
 
         let final_name = mod_id.to_string() + ".jar";
 
-        if self.should_download(&final_name, &file.hashes.sha512, &version.name).await {
+        if self.should_download(&final_name, &file.hashes.sha512, &title).await {
             let download_path = self.mod_path.to_string() + &final_name;
             log::info!("Downloading {} to {}", file.filename, download_path);
 
@@ -58,7 +60,7 @@ impl Downloader {
     }
 
     // Deletes file if it should download!
-    async fn should_download(&self, filename: &str, mod_hash: &str, mod_name: &str) -> bool {
+    async fn should_download(&self, filename: &str, mod_hash: &str, mod_title: &str) -> bool {
         let fpath = PathBuf::from_str(&(self.mod_path.to_string() + filename)).unwrap();
         log::debug!("Testing if should download {}", fpath.to_string_lossy());
         if fpath.is_file() {
@@ -68,12 +70,12 @@ impl Downloader {
                 std::fs::remove_file(fpath.as_path()).unwrap();
                 true
             } else {
-                tracing::info!("Skipping {}, newest version already downloaded.", mod_name);
+                tracing::info!("Skipping {mod_title}, newest version already downloaded.");
                 tracing::debug!(filename, "skipped");
                 false
             }
         } else {
-            tracing::debug!("Mod {mod_name} not found at {filename}. Downloading now!");
+            tracing::debug!("Mod {mod_title} not found at {filename}. Downloading now!");
             true
         }
     }

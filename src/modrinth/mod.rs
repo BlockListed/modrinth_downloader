@@ -22,6 +22,11 @@ pub struct ModrinthHashes {
     pub sha512: String,
 }
 
+#[derive(Deserialize)]
+pub struct ProjectInformation {
+    pub title: String,
+}
+
 pub struct Client {
     client: ReqwestClient,
     endpoint: &'static str,
@@ -40,6 +45,12 @@ impl Client {
             client,
             endpoint: "https://api.modrinth.com/v2",
         }
+    }
+
+    pub async fn get_title(&self, mod_id_or_slug: &str) -> Result<String> {
+        let uri = self.endpoint.to_string() + &format!("/project/{mod_id_or_slug}");
+        let resp: ProjectInformation = self.client.get(uri).send().await?.json().await?;
+        Ok(resp.title)
     }
 
     #[tracing::instrument(skip(self))]
