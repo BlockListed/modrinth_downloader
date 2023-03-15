@@ -46,7 +46,7 @@ impl Downloader {
 
         let final_name = mod_id.to_string() + ".jar";
 
-        if self.should_download(&version.name, &final_name, &file.hashes.sha512) {
+        if self.should_download(&final_name, &file.hashes.sha512, &version.name).await {
             let download_path = self.mod_path.to_string() + &final_name;
             log::info!("Downloading {} to {}", file.filename, download_path);
 
@@ -58,19 +58,22 @@ impl Downloader {
     }
 
     // Deletes file if it should download!
-    fn should_download(&self, filename: &str, mod_hash: &str, mod_name: &str) -> bool {
+    async fn should_download(&self, filename: &str, mod_hash: &str, mod_name: &str) -> bool {
         let fpath = PathBuf::from_str(&(self.mod_path.to_string() + filename)).unwrap();
         log::debug!("Testing if should download {}", fpath.to_string_lossy());
         if fpath.is_file() {
-            let h = hash::hash_file(fpath.as_path()).unwrap();
+            let h = hash::async_hash_file(fpath.as_path()).await.unwrap();
             if h != mod_hash {
+                tracing::debug!(hash_new = h, hash_old = mod_hash);
                 std::fs::remove_file(fpath.as_path()).unwrap();
-                return true;
+                true
             } else {
                 tracing::info!("Skipping {}, newest version already downloaded.", mod_name);
-                return false;
+                tracing::debug!(filename, "skipped");
+                false
             }
         } else {
+            tracing::debug!("Mod {mod_name} not found at {filename}. Downloading now!");
             true
         }
     }

@@ -49,7 +49,7 @@ impl Client {
         game_version: &str,
         loader: &str,
     ) -> Result<Vec<ModrinthVersion>> {
-        let uri = self.endpoint.to_string() + &format!("/project/{mod_id_or_slug}/version?loaders=['{loader}']&game_versions=['{game_version}']");
+        let uri = self.endpoint.to_string() + &format!("/project/{mod_id_or_slug}/version?loaders=[\"{loader}\"]&game_versions=[\"{game_version}\"]");
         let resp = self.client.get(&uri).send().await?;
 
         tracing::debug!(uri, "Getting version information");
@@ -86,8 +86,10 @@ impl Client {
 
         copy(&mut Cursor::new(resp.bytes().await?), &mut out).await?;
 
-        if crate::hash::hash_file(destination)? != file.hashes.sha512 {
+        if crate::hash::async_hash_file(destination).await? != file.hashes.sha512 {
             panic!("CORRUPTION WHILE DOWNLOADING FILE! {}", file.filename);
+        } else {
+            tracing::debug!(dest = ?(AsRef::<Path>::as_ref(&destination)), file.hashes.sha512, "Correct shasum for downloaded file!");
         }
 
         Ok(())

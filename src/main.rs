@@ -10,7 +10,7 @@ async fn main() {
     tracing_subscriber::FmtSubscriber::builder()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or("modrinth_downloader=info,tracing_unwrap=error".into()),
+                .unwrap_or_else(|_| "modrinth_downloader=info,tracing_unwrap=error".into()),
         )
         .init();
 
