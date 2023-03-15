@@ -2,6 +2,7 @@ use anyhow::Result;
 use reqwest::Client as ReqwestClient;
 use serde::Deserialize;
 use std::path::Path;
+use dashmap::DashMap;
 
 #[derive(Deserialize, Clone)]
 pub struct ModrinthVersion {
@@ -30,6 +31,7 @@ pub struct ProjectInformation {
 pub struct Client {
     client: ReqwestClient,
     endpoint: &'static str,
+    title_cache: DashMap<String, String>,
 }
 
 impl Client {
@@ -44,13 +46,19 @@ impl Client {
         Self {
             client,
             endpoint: "https://api.modrinth.com/v2",
+            title_cache: DashMap::new(),
         }
     }
 
     pub async fn get_title(&self, mod_id_or_slug: &str) -> Result<String> {
-        let uri = self.endpoint.to_string() + &format!("/project/{mod_id_or_slug}");
-        let resp: ProjectInformation = self.client.get(uri).send().await?.json().await?;
-        Ok(resp.title)
+        if let Some(title) = self.title_cache.get(mod_id_or_slug) {
+            Ok(title.value().to_string())
+        } else {
+            let uri = self.endpoint.to_string() + &format!("/project/{mod_id_or_slug}");
+            let resp: ProjectInformation = self.client.get(uri).send().await?.json().await?;
+            self.title_cache.insert(mod_id_or_slug.to_string(), resp.title.clone());
+            Ok(resp.title)
+        }
     }
 
     #[tracing::instrument(skip(self))]
