@@ -12,6 +12,7 @@ pub struct Configuration {
 }
 
 pub fn get_config() -> Configuration {
-    let file = String::from_utf8(read(CONFIG_PATH).expect("Couldn't open /config/config.toml")).unwrap();
+    let file =
+        String::from_utf8(read(CONFIG_PATH).expect("Couldn't open /config/config.toml")).unwrap();
     toml::from_str(&file).unwrap()
 }

@@ -1,18 +1,28 @@
+use futures::{stream::FuturesUnordered, StreamExt};
+
 mod configuration;
 mod download;
+mod hash;
+mod modrinth;
 
-fn main() {
-    env_logger::Builder::from_env(
-        env_logger::Env::new()
-        .default_filter_or("modrinth_downloader=info")
-    )
-    .init();
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::FmtSubscriber::builder()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or("modrinth_downloader=info,tracing_unwrap=error".into()),
+        )
+        .init();
 
     let c = configuration::get_config();
 
-    let d = download::Downloader::new(c.mod_path, c.version.as_str(), c.loader.as_str());
+    let d = download::Downloader::new(c.mod_path, c.version, c.loader);
 
-    for m in c.mod_ids {
-        d.download(&m).unwrap();
+    let futures = FuturesUnordered::new();
+
+    for i in c.mod_ids {
+        futures.push(d.download(i));
     }
+
+    let _: Vec<()> = futures.collect().await;
 }
