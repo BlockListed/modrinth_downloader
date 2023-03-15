@@ -50,11 +50,13 @@ impl Client {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get_title(&self, mod_id_or_slug: &str) -> Result<String> {
         if let Some(title) = self.title_cache.get(mod_id_or_slug) {
             Ok(title.value().to_string())
         } else {
             let uri = self.endpoint.to_string() + &format!("/project/{mod_id_or_slug}");
+            tracing::debug!(uri, "Getting title information!");
             let resp: ProjectInformation = self.client.get(uri).send().await?.json().await?;
             self.title_cache.insert(mod_id_or_slug.to_string(), resp.title.clone());
             Ok(resp.title)
