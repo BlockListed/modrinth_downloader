@@ -74,22 +74,23 @@ impl Client {
     pub async fn download_file(
         &self,
         file: ModrinthFile,
-        destination: impl AsRef<Path> + std::marker::Copy,
+        destination: impl AsRef<Path>,
     ) -> Result<()> {
         use tokio::io::copy;
         use std::io::Cursor;
 
+        let path = destination.as_ref();
         tracing::debug!(downloading = file.url);
         let resp = self.client.get(file.url).send().await?;
-        
-        let mut out = tokio::fs::File::create(destination).await?;
+
+        let mut out = tokio::fs::File::create(path).await?;
 
         copy(&mut Cursor::new(resp.bytes().await?), &mut out).await?;
 
-        if crate::hash::async_hash_file(destination).await? != file.hashes.sha512 {
+        if crate::hash::async_hash_file(path).await? != file.hashes.sha512 {
             panic!("CORRUPTION WHILE DOWNLOADING FILE! {}", file.filename);
         } else {
-            tracing::debug!(dest = ?(AsRef::<Path>::as_ref(&destination)), file.hashes.sha512, "Correct shasum for downloaded file!");
+            tracing::debug!(dest = ?path, file.hashes.sha512, "Correct shasum for downloaded file!");
         }
 
         Ok(())

@@ -15,11 +15,11 @@ pub fn hash_file(path: impl AsRef<Path>) -> Result<String> {
     copy(&mut file, &mut sha)?;
     let hash = sha.finalize();
 
-    log::debug!("Took {} millis to hash!", start.elapsed().as_millis());
+    tracing::debug!(time_millis = start.elapsed().as_millis(), "Hashed data!");
     Ok(encode(hash))
 }
 
-pub async fn async_hash_file(path: impl AsRef<Path> + std::marker::Copy) -> Result<String> {
+pub async fn async_hash_file(path: impl AsRef<Path>) -> Result<String> {
     let owned = path.as_ref().to_owned();
     tokio::task::spawn_blocking(|| hash_file(owned)).await.unwrap()
 }
