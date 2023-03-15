@@ -14,7 +14,7 @@ async fn main() {
         )
         .init();
 
-    let c = configuration::get_config();
+    let c = configuration::get_config().await;
 
     let d = download::Downloader::new(c.mod_path, c.version, c.loader);
 

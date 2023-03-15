@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::fs::read;
+use tokio::fs::read;
 
 const CONFIG_PATH: &str = "/config/config.toml";
 
@@ -11,7 +11,7 @@ pub struct Configuration {
     pub mod_ids: Vec<String>,
 }
 
-pub fn get_config() -> Configuration {
-    let file = read(CONFIG_PATH).expect("Couldn't open /config/config.toml");
+pub async fn get_config() -> Configuration {
+    let file = read(CONFIG_PATH).await.expect("Couldn't open /config/config.toml");
     toml::from_slice(file.as_slice()).unwrap()
 }
