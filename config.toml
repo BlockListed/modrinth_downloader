@@ -1,5 +1,5 @@
 # Path where the mods should be downloaded
-mod_path = "/minecraft/mods"
+mod_path = "./mods"
 
 # Game version for mods
 version = "1.19.3"

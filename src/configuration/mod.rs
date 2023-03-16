@@ -13,7 +13,7 @@ pub struct Configuration {
     pub mod_ids: Vec<String>,
 }
 
-pub async fn get_config() -> Configuration {
+pub async fn get_config() -> std::io::Result<Configuration> {
     let config_path = var("CONFIG_PATH").unwrap_or_else(|err| {
         match err {
             VarError::NotUnicode(x) => {
@@ -25,6 +25,7 @@ pub async fn get_config() -> Configuration {
         }
         DEFAULT_CONFIG_PATH.to_string()
     });
-    let file = read(config_path).await.expect("Couldn't open /config/config.toml");
-    toml::from_slice(file.as_slice()).expect("TOML configuration INVALID!")
+    tracing::info!(config_path, "Getting configration!");
+    let file = read(config_path).await?;
+    Ok(toml::from_slice(file.as_slice()).map_err(|x| std::io::Error::new(std::io::ErrorKind::InvalidData, x))?)
 }

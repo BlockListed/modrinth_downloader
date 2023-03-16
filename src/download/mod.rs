@@ -52,10 +52,15 @@ impl Downloader {
             let download_path = self.mod_path.to_string() + &final_name;
             log::info!("Downloading {} to {}", file.filename, download_path);
 
-            self.client
+            match self.client
                 .download_file(file.clone(), &download_path)
                 .await
-                .expect("Couldn't download file");
+            {
+                Err(error) => {
+                    tracing::error!(%error, "Couldn't download file!");
+                },
+                _ => (),
+            }
         }
     }
 

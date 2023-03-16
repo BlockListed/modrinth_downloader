@@ -6,7 +6,7 @@ mod hash;
 mod modrinth;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> std::io::Result<()> {
     tracing_subscriber::FmtSubscriber::builder()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -14,7 +14,13 @@ async fn main() {
         )
         .init();
 
-    let c = configuration::get_config().await;
+    let c = match configuration::get_config().await {
+        Ok(x) => x,
+        Err(error) => {
+            tracing::error!("Could not open configuration file! You can set a custom config file path by setting the `CONFIG_PATH` environment variable.");
+            return Err(error);
+        }
+    };
 
     let d = download::Downloader::new(c.mod_path, c.version, c.loader);
 
@@ -25,4 +31,6 @@ async fn main() {
     }
 
     let _: Vec<()> = futures.collect().await;
+
+    Ok(())
 }

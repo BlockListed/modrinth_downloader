@@ -105,7 +105,9 @@ impl Client {
         tracing::debug!(downloading = file.url);
         let resp = self.client.get(file.url).send().await?;
 
-        let mut out = tokio::fs::File::create(path).await?;
+        let mut out = tokio::fs::File::create(path).await.map_err(|x| {
+            std::io::Error::new(x.kind(), format!("Couldn't create file {}.", path.display()))
+        })?;
 
         copy(&mut Cursor::new(resp.bytes().await?), &mut out).await?;
 
