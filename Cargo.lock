@@ -499,7 +499,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "modrinth_downloader"
+name = "modrinth-downloader"
 version = "0.1.0"
 dependencies = [
  "anyhow",
