@@ -1,7 +1,9 @@
+use std::env::{var, VarError};
+
 use serde::Deserialize;
 use tokio::fs::read;
 
-const CONFIG_PATH: &str = "/config/config.toml";
+const DEFAULT_CONFIG_PATH: &str = "/config/config.toml";
 
 #[derive(Deserialize)]
 pub struct Configuration {
@@ -12,6 +14,17 @@ pub struct Configuration {
 }
 
 pub async fn get_config() -> Configuration {
-    let file = read(CONFIG_PATH).await.expect("Couldn't open /config/config.toml");
+    let config_path = var("CONFIG_PATH").unwrap_or_else(|err| {
+        match err {
+            VarError::NotUnicode(x) => {
+                tracing::warn!(invalid_str=?x, "CONFIG_PATH is not valid Unicode!");
+            },
+            _ => {
+                tracing::debug!("Using default CONFIG_PATH, because enviroment is not set.");
+            }
+        }
+        DEFAULT_CONFIG_PATH.to_string()
+    });
+    let file = read(config_path).await.expect("Couldn't open /config/config.toml");
     toml::from_slice(file.as_slice()).expect("TOML configuration INVALID!")
 }
