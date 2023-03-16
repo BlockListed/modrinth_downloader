@@ -26,6 +26,6 @@ pub async fn get_config() -> std::io::Result<Configuration> {
         DEFAULT_CONFIG_PATH.to_string()
     });
     tracing::info!(config_path, "Getting configration!");
-    let file = read(config_path).await?;
-    Ok(toml::from_slice(file.as_slice()).map_err(|x| std::io::Error::new(std::io::ErrorKind::InvalidData, x))?)
+    let file = read(&config_path).await?;
+    Ok(toml::from_slice(file.as_slice()).map_err(|x| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{{ path: {config_path}, error: {x} }}")))?)
 }

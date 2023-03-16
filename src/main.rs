@@ -17,8 +17,21 @@ async fn main() -> std::io::Result<()> {
     let c = match configuration::get_config().await {
         Ok(x) => x,
         Err(error) => {
-            tracing::error!("Could not open configuration file! You can set a custom config file path by setting the `CONFIG_PATH` environment variable.");
-            return Err(error);
+            use std::io::ErrorKind;
+            return match error.kind() {
+                ErrorKind::InvalidData => {
+                    tracing::error!("Invalid TOML data!");
+                    Err(error)
+                },
+                ErrorKind::NotFound => {
+                    tracing::error!("Could not find config file! You can set a custom config file path by setting the `CONFIG_PATH` environment variable.");
+                    Err(error)
+                },
+                _ => {
+                    tracing::error!("Could not open config file! You can set a custom config file path by setting the `CONFIG_PATH` environment variable.");
+                    Err(error)
+                }
+            }
         }
     };
 
