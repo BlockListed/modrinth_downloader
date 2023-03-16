@@ -7,6 +7,8 @@ use hex::encode;
 use sha2::{Digest, Sha512};
 use tracing_unwrap::ResultExt;
 
+use tokio::sync::oneshot;
+
 pub fn hash_file(path: impl AsRef<Path>) -> Result<String> {
     let start = Instant::now();
     let mut file = File::open(path).unwrap_or_log();
@@ -21,5 +23,11 @@ pub fn hash_file(path: impl AsRef<Path>) -> Result<String> {
 
 pub async fn async_hash_file(path: impl AsRef<Path>) -> Result<String> {
     let owned = path.as_ref().to_owned();
-    tokio::task::spawn_blocking(|| hash_file(owned)).await.unwrap()
+    let (tx, rx) = oneshot::channel();
+
+    rayon::spawn(|| {
+        tx.send(hash_file(owned)).unwrap();
+    });
+
+    rx.await.expect("Couldn't get async hash!")
 }
