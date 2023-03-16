@@ -32,7 +32,13 @@ impl Downloader {
     } 
 
     pub async fn download(&self, mod_id: String) {
-        let title = self.client.get_title(&mod_id).await.expect("Couldn't find mod!");
+        let title = match self.client.get_title(&mod_id).await {
+            Ok(x) => x,
+            Err(error) => {
+                tracing::error!(%error, mod_id, "Couldn't get title of mod!");
+                return
+            }
+        };
 
         let version = match self
             .client

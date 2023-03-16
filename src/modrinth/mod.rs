@@ -42,7 +42,7 @@ impl Client {
                 env!("CARGO_PKG_VERSION")
             ))
             .build()
-            .unwrap();
+            .expect("Couldn't create client!");
         Self {
             client,
             endpoint: "https://api.modrinth.com/v2",

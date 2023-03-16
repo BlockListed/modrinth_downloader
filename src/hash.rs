@@ -5,13 +5,12 @@ use std::time::Instant;
 
 use hex::encode;
 use sha2::{Digest, Sha512};
-use tracing_unwrap::ResultExt;
 
 use tokio::sync::oneshot;
 
 pub fn hash_file(path: impl AsRef<Path>) -> Result<String> {
     let start = Instant::now();
-    let mut file = File::open(path).unwrap_or_log();
+    let mut file = File::open(path)?;
 
     let mut sha = Sha512::new();
     copy(&mut file, &mut sha)?;
@@ -26,7 +25,7 @@ pub async fn async_hash_file(path: impl AsRef<Path>) -> Result<String> {
     let (tx, rx) = oneshot::channel();
 
     rayon::spawn(|| {
-        tx.send(hash_file(owned)).unwrap();
+        tx.send(hash_file(owned)).expect("Couldn't send back async hash!");
     });
 
     rx.await.expect("Couldn't get async hash!")
