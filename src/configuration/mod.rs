@@ -13,7 +13,39 @@ pub struct Configuration {
     pub mod_ids: Vec<String>,
 }
 
-pub async fn get_config() -> std::io::Result<Configuration> {
+pub enum ConfigurationError {
+    IOError {
+        error: std::io::Error,
+        path: String,
+    },
+    TOMLError {
+        error: toml::de::Error,
+        path: String,
+    },
+}
+
+impl From<(std::io::Error, String)> for ConfigurationError {
+    fn from(value: (std::io::Error, String)) -> Self {
+        Self::IOError { error: value.0, path: value.1 }
+    }
+}
+
+impl From<(toml::de::Error, String)> for ConfigurationError {
+    fn from(value: (toml::de::Error, String)) -> Self {
+        Self::TOMLError { error: value.0, path: value.1 }
+    }
+}
+
+macro_rules! handle_error {
+    ($e:expr, $p:expr) => {
+        match $e {
+            Ok(x) => x,
+            Err(e) => return Err(ConfigurationError::from((e, $p)))
+        }
+    };
+}
+
+pub async fn get_config() ->Result<Configuration, ConfigurationError> {
     let config_path = var("CONFIG_PATH").unwrap_or_else(|err| {
         match err {
             VarError::NotUnicode(x) => {
@@ -25,7 +57,7 @@ pub async fn get_config() -> std::io::Result<Configuration> {
         }
         DEFAULT_CONFIG_PATH.to_string()
     });
-    tracing::info!(config_path, "Getting configration!");
-    let file = read(&config_path).await?;
-    Ok(toml::from_slice(file.as_slice()).map_err(|x| std::io::Error::new(std::io::ErrorKind::InvalidData, format!("{{ path: {config_path}, error: {x} }}")))?)
+    tracing::debug!(path=config_path, "Getting configration!");
+    let file = handle_error!(read(&config_path).await, config_path);
+    Ok(handle_error!(toml::from_slice(file.as_slice()), config_path))
 }

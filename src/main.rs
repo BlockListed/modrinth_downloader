@@ -1,12 +1,13 @@
 use futures::{stream::FuturesUnordered, StreamExt};
 
 mod configuration;
+use configuration::ConfigurationError;
 mod download;
 mod hash;
 mod modrinth;
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<(), std::io::ErrorKind> {
     tracing_subscriber::FmtSubscriber::builder()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -18,18 +19,14 @@ async fn main() -> std::io::Result<()> {
         Ok(x) => x,
         Err(error) => {
             use std::io::ErrorKind;
-            return match error.kind() {
-                ErrorKind::InvalidData => {
-                    tracing::error!("Invalid TOML data!");
-                    Err(error)
+            match error {
+                ConfigurationError::IOError { error, path } => {
+                    tracing::error!(path, %error, "Couldn't get configuration!");
+                    std::process::exit(error.kind() as i32)
                 },
-                ErrorKind::NotFound => {
-                    tracing::error!("Could not find config file! You can set a custom config file path by setting the `CONFIG_PATH` environment variable.");
-                    Err(error)
-                },
-                _ => {
-                    tracing::error!("Could not open config file! You can set a custom config file path by setting the `CONFIG_PATH` environment variable.");
-                    Err(error)
+                ConfigurationError::TOMLError { error, path } => {
+                    tracing::error!(path, %error, "Couldn't parse configuration!");
+                    std::process::exit(ErrorKind::InvalidData as i32);
                 }
             }
         }
