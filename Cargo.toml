@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 reqwest = { version = "0.11", features = ["rustls-tls", "json"], default-features = false }
 futures = "0.3"
-anyhow = "1.0"
+color-eyre = "0.6"
 toml = "0.5"
 sha2 = "0.10"
 rayon = "1.7"
@@ -19,6 +19,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 log = "0.4"
 dashmap = "5.4"
+thiserror = "1.0.40"
 
 [dependencies.tokio]
 version = "1.26"

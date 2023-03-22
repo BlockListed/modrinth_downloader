@@ -13,11 +13,14 @@ pub struct Configuration {
     pub mod_ids: Vec<String>,
 }
 
+#[derive(Debug, thiserror::Error)]
 pub enum ConfigurationError {
+    #[error("Couldn't read configuration from `{path}` because `{error}`. Path can be changed using `CONFIG_PATH` env.")]
     IOError {
         error: std::io::Error,
         path: String,
     },
+    #[error("Couldn't parse configuration at `{path}` because `{error}`")]
     TOMLError {
         error: toml::de::Error,
         path: String,

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use color_eyre::Result;
 use reqwest::Client as ReqwestClient;
 use serde::Deserialize;
 use std::path::Path;
@@ -89,7 +89,7 @@ impl Client {
         let title = self.get_title(mod_id_or_slug).await?;
         Ok(self
             .get_versions(mod_id_or_slug, game_version, loader)
-            .await?.get(0).ok_or(anyhow::Error::msg(format!("No version of {title} exists for {game_version}-{loader}")))?
+            .await?.get(0).ok_or(color_eyre::eyre::Error::msg(format!("No version of {title} exists for {game_version}-{loader}")))?
             .clone())
     }
 
