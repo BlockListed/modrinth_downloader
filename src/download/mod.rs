@@ -1,7 +1,4 @@
-use std::{
-    path::PathBuf,
-    str::FromStr,
-};
+use std::path::Path;
 
 use crate::modrinth::Client;
 
@@ -47,7 +44,7 @@ impl Downloader {
         {
             Ok(x) => x,
             Err(error) => {
-                tracing::error!(%error, "Couldn't mod version!");
+                tracing::error!(%error, "Couldn't get mod version!");
                 return
             }
         };
@@ -65,21 +62,21 @@ impl Downloader {
         }; 
 
         let final_name = mod_id.to_string() + ".jar";
+        let final_path = self.mod_path.clone() + &final_name;
 
-        let should_download = match self.should_download(&final_name, &file.hashes.sha512, &title).await {
+        let should_download = match self.should_download(&final_path, &file.hashes.sha512, &title).await {
             Ok(x) => x,
             Err(error) => {
-                tracing::error!(%error, file=(self.mod_path.clone()+&final_name), "Couldn't perform update checking/deletion of old file!");
+                tracing::error!(%error, file=final_path, "Couldn't perform update checking/deletion of old file!");
                 return
             }
         };
 
         if should_download {
-            let download_path = self.mod_path.to_string() + &final_name;
-            log::info!("Downloading {} to {}", file.filename, download_path);
+            log::info!("Downloading {} to {}", file.filename, final_path);
 
             match self.client
-                .download_file(file.clone(), &download_path)
+                .download_file(file.clone(), &final_path)
                 .await
             {
                 Err(error) => {
@@ -91,22 +88,23 @@ impl Downloader {
     }
 
     // Deletes file if it should download!
-    async fn should_download(&self, filename: &str, mod_hash: &str, mod_title: &str) -> std::io::Result<bool> {
-        let fpath = PathBuf::from_str(&(self.mod_path.to_string() + filename)).unwrap();
+    async fn should_download(&self, filepath: &str, mod_hash: &str, mod_title: &str) -> std::io::Result<bool> {
+        let fpath = Path::new(filepath);
         log::debug!("Testing if should download {}", fpath.to_string_lossy());
         if fpath.is_file() {
-            let h = hash::async_hash_file(fpath.as_path()).await.unwrap();
+            let h = hash::async_hash_file(fpath).await.unwrap();
             if h != mod_hash {
                 tracing::debug!(hash_new = h, hash_old = mod_hash);
-                std::fs::remove_file(fpath.as_path())?;
+                std::fs::remove_file(fpath)?;
+                tracing::info!("Updating {mod_title}.");
                 Ok(true)
             } else {
                 tracing::info!("Skipping {mod_title}, newest version already downloaded.");
-                tracing::debug!(filename, "skipped");
+                tracing::debug!(filepath, "skipped");
                 Ok(false)
             }
         } else {
-            tracing::debug!("Mod {mod_title} not found at {filename}. Downloading now!");
+            tracing::debug!("Mod {mod_title} not found at {filepath}. Downloading now!");
             Ok(true)
         }
     }

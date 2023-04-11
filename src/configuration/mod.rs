@@ -20,7 +20,7 @@ pub enum ConfigurationError {
         error: std::io::Error,
         path: String,
     },
-    #[error("Couldn't parse configuration at `{path}` because `{error}`")]
+    #[error("Couldn't parse configuration at `{path}` because `{error}`.")]
     TOMLError {
         error: toml::de::Error,
         path: String,
