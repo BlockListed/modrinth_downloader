@@ -111,6 +111,11 @@ impl Client {
 
         copy(&mut Cursor::new(resp.bytes().await?), &mut out).await?;
 
+        // This is supposed to be read from disk to detect corruption.
+        // DO NOT OPTIMISE THIS AS A READ FROM MEMORY, SINCE THAT'S FUCKING STUPID.
+        // However this could be turned into an optional step, since https should
+        // protect the data during download and if a filesystem corrupts data while
+        // downloading, that should probably not be my problem.
         if crate::hash::async_hash_file(path).await? != file.hashes.sha512 {
             panic!("CORRUPTION WHILE DOWNLOADING FILE! {}", file.filename);
         } else {
