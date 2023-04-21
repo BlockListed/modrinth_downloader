@@ -582,7 +582,7 @@ dependencies = [
 
 [[package]]
 name = "modrinth-downloader"
-version = "1.5.8"
+version = "1.5.9"
 dependencies = [
  "color-eyre",
  "dashmap",
