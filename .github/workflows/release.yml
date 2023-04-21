@@ -20,7 +20,7 @@ jobs:
         run: |
           cargo build --release --target=x86_64-unknown-linux-musl
 
-      - uses: ncipollo/release-action
+      - uses: ncipollo/release-action@v1
         with:
           artifacts: |
             "target/x86_64-unknown-linux-musl/release/modrinth-downloader"
