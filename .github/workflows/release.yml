@@ -29,5 +29,3 @@ jobs:
         with:
           files: |
             target/x86_64-unknown-linux-musl/release/modrinth-downloader
-      - name: Debug
-        run: ls -1 target/x86_64-unknown-linux-musl/release
