@@ -29,3 +29,5 @@ jobs:
         with:
           artifacts: |
             "./**/modrinth-downloader"
+      - name: List all files in target directory
+        run: ls --recursive target/
