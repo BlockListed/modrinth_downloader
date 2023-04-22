@@ -22,13 +22,13 @@ async fn main() -> Result<()> {
 
     let d = download::Downloader::new(c.mod_path, c.version, c.loader);
 
-    let futures = FuturesUnordered::new();
+    let mut futures = FuturesUnordered::new();
 
     for i in c.mod_ids {
         futures.push(d.download(i));
     }
 
-    let _: Vec<()> = futures.collect().await;
+    while let Some(_) = futures.next().await {}
 
     Ok(())
 }
