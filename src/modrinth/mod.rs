@@ -98,18 +98,20 @@ impl Client {
         file: ModrinthFile,
         destination: impl AsRef<Path>,
     ) -> Result<()> {
-        use tokio::io::copy;
-        use std::io::Cursor;
-
+        use tokio::io::AsyncWriteExt;
+        
         let path = destination.as_ref();
         tracing::debug!(downloading = file.url);
-        let resp = self.client.get(file.url).send().await?;
+        let mut resp = self.client.get(file.url).send().await?;
 
         let mut out = tokio::fs::File::create(path).await.map_err(|x| {
             std::io::Error::new(x.kind(), format!("Couldn't create file {}.", path.display()))
         })?;
 
-        copy(&mut Cursor::new(resp.bytes().await?), &mut out).await?;
+        // Chunk to reduce memory usage
+        while let Some(data) = resp.chunk().await? {
+            out.write(data.as_ref()).await?;
+        }
 
         // This is supposed to be read from disk to detect corruption.
         // DO NOT OPTIMISE THIS AS A READ FROM MEMORY, SINCE THAT'S FUCKING STUPID.
