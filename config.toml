@@ -2,7 +2,7 @@
 mod_path = "./mods"
 
 # Game version for mods
-version = "1.19.3"
+version = "1.20"
 
 # Loader
 loader = "fabric"
