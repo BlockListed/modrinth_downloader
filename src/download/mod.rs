@@ -75,14 +75,11 @@ impl Downloader {
         if should_download {
             log::info!("Downloading {} to {}", file.filename, final_path);
 
-            match self.client
+            if let Err(e) = self.client
                 .download_file(file.clone(), &final_path)
                 .await
             {
-                Err(error) => {
-                    tracing::error!(%error, "Couldn't download file!");
-                },
-                _ => (),
+                tracing::error!(%e, "Couldn't download file!");
             }
         }
     }
