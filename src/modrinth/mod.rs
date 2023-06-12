@@ -121,10 +121,10 @@ impl Client {
         // downloading, that should probably not be my problem.
         // HOWEVER: cloudflare sometimes blocks downloads and the client does not 
         // check status codes.
-        if crate::hash::async_hash_file(path).await? != file.hashes.sha512 {
-            panic!("CORRUPTION WHILE DOWNLOADING FILE! {}", file.filename);
-        } else {
+        if crate::hash::async_hash_file(path).await? == file.hashes.sha512 {
             tracing::debug!(dest = ?path, file.hashes.sha512, "Correct shasum for downloaded file!");
+        } else {
+            panic!("CORRUPTION WHILE DOWNLOADING FILE! {}", file.filename);
         }
 
         Ok(())
