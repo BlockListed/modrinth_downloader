@@ -110,7 +110,7 @@ impl Client {
 
         // Chunk to reduce memory usage
         while let Some(data) = resp.chunk().await? {
-            out.write(data.as_ref()).await?;
+            out.write_all(data.as_ref()).await?;
         }
 
         // This is supposed to be read from disk to detect corruption.
