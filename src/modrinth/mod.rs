@@ -102,6 +102,7 @@ impl Client {
         
         let path = destination.as_ref();
         tracing::debug!(downloading = file.url);
+        // TODO: Detect status codes
         let mut resp = self.client.get(file.url).send().await?;
 
         let mut out = tokio::fs::File::create(path).await.map_err(|x| {
@@ -118,6 +119,8 @@ impl Client {
         // However this could be turned into an optional step, since https should
         // protect the data during download and if a filesystem corrupts data while
         // downloading, that should probably not be my problem.
+        // HOWEVER: cloudflare sometimes blocks downloads and the client does not 
+        // check status codes.
         if crate::hash::async_hash_file(path).await? != file.hashes.sha512 {
             panic!("CORRUPTION WHILE DOWNLOADING FILE! {}", file.filename);
         } else {
