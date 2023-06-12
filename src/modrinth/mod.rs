@@ -124,7 +124,7 @@ impl Client {
         if crate::hash::async_hash_file(path).await? == file.hashes.sha512 {
             tracing::debug!(dest = ?path, file.hashes.sha512, "Correct shasum for downloaded file!");
         } else {
-            panic!("CORRUPTION WHILE DOWNLOADING FILE! {}", file.filename);
+            panic!("CORRUPTION WHILE CHECKING DOWNLOADED FILE! {} - {}", file.filename, resp.status());
         }
 
         Ok(())
