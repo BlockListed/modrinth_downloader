@@ -1,8 +1,18 @@
-use color_eyre::Result;
-use reqwest::Client as ReqwestClient;
-use serde::Deserialize;
 use std::path::Path;
+use std::path::PathBuf;
+use std::str::FromStr;
+use std::time::SystemTime;
+
+use color_eyre::Result;
+use color_eyre::Report;
+
+use reqwest::Client as ReqwestClient;
+use reqwest::Response;
+use tokio::fs::File;
+use serde::Deserialize;
 use dashmap::DashMap;
+use tokio::io::AsyncWrite;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Deserialize, Clone)]
 pub struct ModrinthVersion {
@@ -98,29 +108,33 @@ impl Client {
         file: ModrinthFile,
         destination: impl AsRef<Path>,
     ) -> Result<()> {
-        use tokio::io::AsyncWriteExt;
-        
         let path = destination.as_ref();
         tracing::debug!(downloading = file.url);
-        // TODO: Detect status codes
         let mut resp = self.client.get(file.url).send().await?;
 
-        let mut out = tokio::fs::File::create(path).await.map_err(|x| {
+        if !resp.status().is_success() {
+            let unix_time = SystemTime::UNIX_EPOCH.elapsed().expect("Before 1970").as_millis();
+            let mut log_file = PathBuf::from_str("/minecraft/mods/").unwrap();
+            log_file.push(format!("download_{}.log", unix_time));
+            tracing::error!(code=%resp.status() , log=%log_file.display(), "Download failed! Saving log file.");
+
+            let mut out = File::create(log_file).await?;
+            save_resp(&mut resp, &mut out).await?;
+
+            return Err(Report::msg(format!("Download failed with code - {}", resp.status())))
+        }
+
+        let mut out = File::create(path).await.map_err(|x| {
             std::io::Error::new(x.kind(), format!("Couldn't create file {}.", path.display()))
         })?;
 
-        // Chunk to reduce memory usage
-        while let Some(data) = resp.chunk().await? {
-            out.write_all(data.as_ref()).await?;
-        }
+        save_resp(&mut resp, &mut out).await?;
 
         // This is supposed to be read from disk to detect corruption.
         // DO NOT OPTIMISE THIS AS A READ FROM MEMORY, SINCE THAT'S FUCKING STUPID.
         // However this could be turned into an optional step, since https should
         // protect the data during download and if a filesystem corrupts data while
         // downloading, that should probably not be my problem.
-        // HOWEVER: cloudflare sometimes blocks downloads and the client does not 
-        // check status codes.
         if crate::hash::async_hash_file(path).await? == file.hashes.sha512 {
             tracing::debug!(dest = ?path, file.hashes.sha512, "Correct shasum for downloaded file!");
         } else {
@@ -129,4 +143,13 @@ impl Client {
 
         Ok(())
     }
+}
+
+pub async fn save_resp(resp: &mut Response, out: &mut (impl AsyncWrite + std::marker::Unpin)) -> Result<()> {
+    // Chunk to reduce memory usage
+    while let Some(data) = resp.chunk().await? {
+        out.write_all(&data).await?;
+    }
+
+    Ok(())
 }
