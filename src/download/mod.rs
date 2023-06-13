@@ -59,10 +59,8 @@ impl Downloader {
             .find(|x| x.primary)
         {
             Some(x) => x,
-            None => {
-                tracing::error!("Newest version of {title} for {}-{} has no primary files!", self.version, self.loader);
-                return
-            }
+            // This is desired behaviour, as described in https://github.com/modrinth/labrinth/issues/559
+            None => &version.files[0],
         }; 
 
         let final_name = mod_id.to_string() + ".jar";
