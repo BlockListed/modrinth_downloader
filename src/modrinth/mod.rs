@@ -13,8 +13,9 @@ use serde::Deserialize;
 use dashmap::DashMap;
 use tokio::io::AsyncWrite;
 use tokio::io::AsyncWriteExt;
+use url::Url;
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ModrinthVersion {
     pub name: String,
     pub files: Vec<ModrinthFile>,
@@ -33,14 +34,14 @@ pub struct ModrinthHashes {
     pub sha512: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ProjectInformation {
     pub title: String,
 }
 
 pub struct Client {
     client: ReqwestClient,
-    endpoint: &'static str,
+    endpoint: Url,
     title_cache: DashMap<String, String>,
 }
 
@@ -55,7 +56,7 @@ impl Client {
             .expect("Couldn't create client!");
         Self {
             client,
-            endpoint: "https://api.modrinth.com/v2",
+            endpoint: Url::parse("https://api.modrinth.com/v2").unwrap(),
             title_cache: DashMap::new(),
         }
     }
@@ -65,9 +66,16 @@ impl Client {
         if let Some(title) = self.title_cache.get(mod_id_or_slug) {
             Ok(title.value().to_string())
         } else {
-            let uri = self.endpoint.to_string() + &format!("/project/{mod_id_or_slug}");
-            tracing::debug!(uri, "Getting title information!");
-            let resp: ProjectInformation = self.client.get(uri).send().await?.json().await?;
+            let mut url = self.endpoint.clone();
+
+            {
+                let mut segments = url.path_segments_mut().unwrap();
+                segments.push("project");
+                segments.push(mod_id_or_slug);
+            }
+            
+            tracing::debug!(%url, "Getting title information!");
+            let resp: ProjectInformation = self.client.get(url).send().await?.json().await?;
             self.title_cache.insert(mod_id_or_slug.to_string(), resp.title.clone());
             Ok(resp.title)
         }
@@ -80,10 +88,23 @@ impl Client {
         game_version: &str,
         loader: &str,
     ) -> Result<Vec<ModrinthVersion>> {
-        let uri = self.endpoint.to_string() + &format!("/project/{mod_id_or_slug}/version?loaders=[\"{loader}\"]&game_versions=[\"{game_version}\"]");
-        let resp = self.client.get(&uri).send().await?;
+        let mut url = self.endpoint.clone();
 
-        tracing::debug!(uri, "Getting version information");
+        {
+            let mut segments = url.path_segments_mut().unwrap();
+            segments.push("project");
+            segments.push(mod_id_or_slug);
+            segments.push("version");
+        }
+        {
+            let mut query = url.query_pairs_mut();
+            query.append_pair("loaders", &format!("[\"{loader}\"]"));
+            query.append_pair("game_versions", &format!("[\"{game_version}\"]"));
+        }
+
+        let resp = self.client.get(url.as_str()).send().await?;
+
+        tracing::debug!(%url, "Getting version information");
 
         let versions: Vec<ModrinthVersion> = resp.json().await?;
 
