@@ -73,7 +73,7 @@ impl Client {
                 segments.push("project");
                 segments.push(mod_id_or_slug);
             }
-            
+
             tracing::debug!(%url, "Getting title information!");
             let resp: ProjectInformation = self.client.get(url).send().await?.json().await?;
             self.title_cache.insert(mod_id_or_slug.to_string(), resp.title.clone());
@@ -155,9 +155,6 @@ impl Client {
 
         // This is supposed to be read from disk to detect corruption.
         // DO NOT OPTIMISE THIS AS A READ FROM MEMORY, SINCE THAT'S FUCKING STUPID.
-        // However this could be turned into an optional step, since https should
-        // protect the data during download and if a filesystem corrupts data while
-        // downloading, that should probably not be my problem.
         if crate::hash::async_hash_file(path).await? == file.hashes.sha512 {
             tracing::debug!(dest = ?path, file.hashes.sha512, "Correct shasum for downloaded file!");
         } else {
