@@ -20,7 +20,7 @@ pub struct ModrinthVersion {
     pub files: Vec<ModrinthFile>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ModrinthFile {
     pub hashes: ModrinthHashes,
     pub url: String,
@@ -28,7 +28,7 @@ pub struct ModrinthFile {
     pub primary: bool,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct ModrinthHashes {
     pub sha512: String,
 }
@@ -114,8 +114,10 @@ impl Client {
 
         if !resp.status().is_success() {
             let unix_time = SystemTime::UNIX_EPOCH.elapsed().expect("Before 1970").as_millis();
+
             let mut log_file = PathBuf::from_str("/minecraft/mods/").unwrap();
-            log_file.push(format!("download_{}.log", unix_time));
+            log_file.push(format!("download_{}_{}.log", file.filename, unix_time));
+
             tracing::error!(code=%resp.status() , log=%log_file.display(), "Download failed! Saving log file.");
 
             let mut out = File::create(log_file).await?;
