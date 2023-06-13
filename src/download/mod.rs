@@ -1,23 +1,27 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::modrinth::Client;
 
 use crate::hash;
 
 pub struct Downloader {
-    mod_path: String,
+    mod_path: PathBuf,
     version: String,
     loader: String,
     client: Client,
 }
 
 impl Downloader {
-    pub fn new(mut mod_path: String, version: String, loader: String) -> Self {
+    pub fn new(mod_path: PathBuf, version: String, loader: String) -> Self {
         let client = Client::new();
 
-        if !mod_path.ends_with('/') {
-            tracing::warn!("mod_path doesn't include trailing slash. Correcting");
-            mod_path += "/";
+        if !mod_path.exists() {
+            std::fs::create_dir(&mod_path).unwrap();
+            tracing::info!("Mod path didn't exist created directory!")
+        }
+
+        if !mod_path.is_dir() {
+            panic!("mod_path, {}, is not a directory", mod_path.display());
         }
 
         Self {
@@ -62,18 +66,19 @@ impl Downloader {
         }; 
 
         let final_name = mod_id.to_string() + ".jar";
-        let final_path = self.mod_path.clone() + &final_name;
+        let mut final_path = self.mod_path.clone();
+        final_path.push(final_name);
 
         let should_download = match self.should_download(&final_path, &file.hashes.sha512, &title).await {
             Ok(x) => x,
             Err(error) => {
-                tracing::error!(%error, file=final_path, "Couldn't perform update checking/deletion of old file!");
+                tracing::error!(%error, file=%final_path.display(), "Couldn't perform update checking/deletion of old file!");
                 return
             }
         };
 
         if should_download {
-            log::info!("Downloading {} to {}", file.filename, final_path);
+            tracing::info!(file=file.filename, path=%final_path.display(), "Downloading mod");
 
             if let Err(e) = self.client
                 .download_file(file.clone(), &final_path)
@@ -85,8 +90,8 @@ impl Downloader {
     }
 
     // Deletes file if it should download!
-    async fn should_download(&self, filepath: &str, mod_hash: &str, mod_title: &str) -> std::io::Result<bool> {
-        let fpath = Path::new(filepath);
+    async fn should_download(&self, filepath: impl AsRef<Path>, mod_hash: &str, mod_title: &str) -> std::io::Result<bool> {
+        let fpath = filepath.as_ref();
         log::debug!("Testing if should download {}", fpath.to_string_lossy());
         if fpath.is_file() {
             let h = hash::async_hash_file(fpath).await.unwrap();
@@ -97,11 +102,11 @@ impl Downloader {
                 Ok(true)
             } else {
                 tracing::info!("Skipping {mod_title}, newest version already downloaded.");
-                tracing::debug!(filepath, "skipped");
+                tracing::debug!(filepath=%fpath.display(), "skipped");
                 Ok(false)
             }
         } else {
-            tracing::debug!("Mod {mod_title} not found at {filepath}. Downloading now!");
+            tracing::debug!(mod_title, filepath=%fpath.display(), "Mod not found. Downloading now!");
             Ok(true)
         }
     }
