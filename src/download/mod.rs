@@ -17,12 +17,10 @@ impl Downloader {
 
         if !mod_path.exists() {
             std::fs::create_dir(&mod_path).unwrap();
-            tracing::info!("Mod path didn't exist created directory!")
+            tracing::info!("Mod path didn't exist created directory!");
         }
 
-        if !mod_path.is_dir() {
-            panic!("mod_path, {}, is not a directory", mod_path.display());
-        }
+        assert!(mod_path.is_dir(), "mod_path, {}, is not a directory", mod_path.display());
 
         Self {
             mod_path,
@@ -88,20 +86,20 @@ impl Downloader {
     }
 
     // Deletes file if it should download!
-    async fn should_download(&self, filepath: impl AsRef<Path>, mod_hash: &str, mod_title: &str) -> std::io::Result<bool> {
+    async fn should_download(&self, filepath: impl AsRef<Path> + Send, mod_hash: &str, mod_title: &str) -> std::io::Result<bool> {
         let fpath = filepath.as_ref();
         tracing::debug!("Testing if should download {}", fpath.to_string_lossy());
         if fpath.is_file() {
             let h = hash::async_hash_file(fpath).await.unwrap();
-            if h != mod_hash {
+            if h == mod_hash {
+                tracing::info!("Skipping {mod_title}, newest version already downloaded.");
+                tracing::debug!(filepath=%fpath.display(), "skipped");
+                Ok(false)
+            } else {
                 tracing::debug!(hash_new = h, hash_old = mod_hash);
                 std::fs::remove_file(fpath)?;
                 tracing::info!("Updating {mod_title}.");
                 Ok(true)
-            } else {
-                tracing::info!("Skipping {mod_title}, newest version already downloaded.");
-                tracing::debug!(filepath=%fpath.display(), "skipped");
-                Ok(false)
             }
         } else {
             tracing::debug!(mod_title, filepath=%fpath.display(), "Mod not found. Downloading now!");

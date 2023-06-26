@@ -16,21 +16,21 @@ use tokio::io::AsyncWriteExt;
 use url::Url;
 
 #[derive(Deserialize, Clone, Debug)]
-pub struct ModrinthVersion {
+pub struct Version {
     pub name: String,
-    pub files: Vec<ModrinthFile>,
+    pub files: Vec<ModFile>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
-pub struct ModrinthFile {
-    pub hashes: ModrinthHashes,
+pub struct ModFile {
+    pub hashes: Hashes,
     pub url: String,
     pub filename: String,
     pub primary: bool,
 }
 
 #[derive(Deserialize, Clone, Debug)]
-pub struct ModrinthHashes {
+pub struct Hashes {
     pub sha512: String,
 }
 
@@ -64,21 +64,20 @@ impl Client {
     #[tracing::instrument(skip(self))]
     pub async fn get_title(&self, mod_id_or_slug: &str) -> Result<String> {
         if let Some(title) = self.title_cache.get(mod_id_or_slug) {
-            Ok(title.value().to_string())
-        } else {
-            let mut url = self.endpoint.clone();
-
-            {
-                let mut segments = url.path_segments_mut().unwrap();
-                segments.push("project");
-                segments.push(mod_id_or_slug);
-            }
-
-            tracing::debug!(%url, "Getting title information!");
-            let resp: ProjectInformation = self.client.get(url).send().await?.json().await?;
-            self.title_cache.insert(mod_id_or_slug.to_string(), resp.title.clone());
-            Ok(resp.title)
+            return Ok(title.value().to_string())
         }
+        let mut url = self.endpoint.clone();
+
+        {
+            let mut segments = url.path_segments_mut().unwrap();
+            segments.push("project");
+            segments.push(mod_id_or_slug);
+        }
+
+        tracing::debug!(%url, "Getting title information!");
+        let resp: ProjectInformation = self.client.get(url).send().await?.json().await?;
+        self.title_cache.insert(mod_id_or_slug.to_string(), resp.title.clone());
+        Ok(resp.title)
     }
 
     #[tracing::instrument(skip(self))]
@@ -87,7 +86,7 @@ impl Client {
         mod_id_or_slug: &str,
         game_version: &str,
         loader: &str,
-    ) -> Result<Vec<ModrinthVersion>> {
+    ) -> Result<Vec<Version>> {
         let mut url = self.endpoint.clone();
 
         {
@@ -106,7 +105,7 @@ impl Client {
 
         tracing::debug!(%url, "Getting version information");
 
-        let versions: Vec<ModrinthVersion> = resp.json().await?;
+        let versions: Vec<Version> = resp.json().await?;
 
         Ok(versions)
     }
@@ -116,18 +115,18 @@ impl Client {
         mod_id_or_slug: &str,
         game_version: &str,
         loader: &str,
-    ) -> Result<ModrinthVersion> {
+    ) -> Result<Version> {
         let title = self.get_title(mod_id_or_slug).await?;
         Ok(self
             .get_versions(mod_id_or_slug, game_version, loader)
-            .await?.get(0).ok_or(color_eyre::eyre::Error::msg(format!("No version of {title} exists for {game_version}-{loader}")))?
+            .await?.get(0).ok_or_else(|| color_eyre::eyre::Error::msg(format!("No version of {title} exists for {game_version}-{loader}")))?
             .clone())
     }
 
     pub async fn download_file(
         &self,
-        file: ModrinthFile,
-        destination: impl AsRef<Path>,
+        file: ModFile,
+        destination: impl AsRef<Path> + Send,
     ) -> Result<()> {
         let path = destination.as_ref();
         tracing::debug!(downloading = file.url);
@@ -165,7 +164,7 @@ impl Client {
     }
 }
 
-pub async fn save_resp(resp: &mut Response, out: &mut (impl AsyncWrite + std::marker::Unpin)) -> Result<()> {
+pub async fn save_resp(resp: &mut Response, out: &mut (impl AsyncWrite + std::marker::Unpin + Send)) -> Result<()> {
     // Chunk to reduce memory usage
     while let Some(data) = resp.chunk().await? {
         out.write_all(&data).await?;

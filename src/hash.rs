@@ -8,7 +8,8 @@ use sha2::{Digest, Sha512};
 
 use tokio::sync::oneshot;
 
-pub fn hash_file(path: impl AsRef<Path>) -> Result<String> {
+#[allow(clippy::module_name_repetitions)]
+pub fn hash_file(path: impl AsRef<Path> + Send) -> Result<String> {
     let start = Instant::now();
     let mut file = File::open(path)?;
 
@@ -20,7 +21,8 @@ pub fn hash_file(path: impl AsRef<Path>) -> Result<String> {
     Ok(encode(hash))
 }
 
-pub async fn async_hash_file(path: impl AsRef<Path>) -> Result<String> {
+#[allow(clippy::module_name_repetitions)]
+pub async fn async_hash_file(path: impl AsRef<Path> + Send) -> Result<String> {
     let owned = path.as_ref().to_owned();
     let (tx, rx) = oneshot::channel();
 
