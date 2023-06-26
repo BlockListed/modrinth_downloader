@@ -588,7 +588,6 @@ dependencies = [
  "dashmap",
  "futures",
  "hex",
- "log",
  "rayon",
  "reqwest",
  "serde",

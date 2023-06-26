@@ -90,7 +90,7 @@ impl Downloader {
     // Deletes file if it should download!
     async fn should_download(&self, filepath: impl AsRef<Path>, mod_hash: &str, mod_title: &str) -> std::io::Result<bool> {
         let fpath = filepath.as_ref();
-        log::debug!("Testing if should download {}", fpath.to_string_lossy());
+        tracing::debug!("Testing if should download {}", fpath.to_string_lossy());
         if fpath.is_file() {
             let h = hash::async_hash_file(fpath).await.unwrap();
             if h != mod_hash {
