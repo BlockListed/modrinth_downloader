@@ -8,9 +8,8 @@ version = "1.19.3"
 loader = "fabric"
 
 mod_ids = [
+  # This uses the ID of the mod
   "gvQqBUqZ", # Lithium
-  "hvFnDODi", # LazyDFU
-  "uXXizFIs", # FerriteCore
-  "H8CaAYZC", # Starlight
-  "fQEb0iXm", # Krypton
+  # You can also use the slug of the mod. eg. https://modrinth.com/mod/ferrite-core <- this is the important part
+  "ferrite-core", # FerriteCore
 ]
