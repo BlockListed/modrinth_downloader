@@ -1,8 +1,8 @@
 use std::path::Path;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::time::SystemTime;
 
+use chrono::Local;
 use color_eyre::Result;
 use color_eyre::Report;
 
@@ -133,10 +133,10 @@ impl Client {
         let mut resp = self.client.get(file.url).send().await?;
 
         if !resp.status().is_success() {
-            let unix_time = SystemTime::UNIX_EPOCH.elapsed().expect("Before 1970").as_millis();
+            let timestamp = Local::now();
 
             let mut log_file = PathBuf::from_str("/minecraft/mods/").unwrap();
-            log_file.push(format!("download_{}_{}.log", file.filename, unix_time));
+            log_file.push(format!("download_{}_{}.log", file.filename, timestamp.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)));
 
             tracing::error!(code=%resp.status() , log=%log_file.display(), "Download failed! Saving log file.");
 
