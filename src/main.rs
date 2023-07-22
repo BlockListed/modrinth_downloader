@@ -9,7 +9,7 @@ mod modrinth;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    color_eyre::install().expect("Couldn't setup error logging!");
+    color_eyre::install()?;
 
     tracing_subscriber::FmtSubscriber::builder()
         .with_env_filter(
