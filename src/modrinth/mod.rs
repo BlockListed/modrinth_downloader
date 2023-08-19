@@ -6,6 +6,7 @@ use chrono::Local;
 use color_eyre::Result;
 use color_eyre::Report;
 
+use color_eyre::eyre::ContextCompat;
 use reqwest::Client as ReqwestClient;
 use reqwest::Response;
 use tokio::fs::File;
@@ -119,7 +120,7 @@ impl Client {
         let title = self.get_title(mod_id_or_slug).await?;
         Ok(self
             .get_versions(mod_id_or_slug, game_version, loader)
-            .await?.get(0).ok_or_else(|| color_eyre::eyre::Error::msg(format!("No version of {title} exists for {game_version}-{loader}")))?
+            .await?.get(0).wrap_err_with(|| format!("No version of {title} exists for {game_version}-{loader}"))?
             .clone())
     }
 
