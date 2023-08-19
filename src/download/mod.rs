@@ -20,7 +20,11 @@ impl Downloader {
             tracing::info!("Mod path didn't exist created directory!");
         }
 
-        assert!(mod_path.is_dir(), "mod_path, {}, is not a directory", mod_path.display());
+        assert!(
+            mod_path.is_dir(),
+            "mod_path, {}, is not a directory",
+            mod_path.display()
+        );
 
         Self {
             mod_path,
@@ -28,14 +32,14 @@ impl Downloader {
             loader,
             client,
         }
-    } 
+    }
 
     pub async fn download(&self, mod_id: String) {
         let title = match self.client.get_title(&mod_id).await {
             Ok(x) => x,
             Err(error) => {
                 tracing::error!(%error, mod_id, "Couldn't get title of mod!");
-                return
+                return;
             }
         };
 
@@ -47,46 +51,47 @@ impl Downloader {
             Ok(x) => x,
             Err(error) => {
                 tracing::error!(%error, "Couldn't get mod version!");
-                return
+                return;
             }
         };
 
-        let file = match version
-            .files
-            .iter()
-            .find(|x| x.primary)
-        {
+        let file = match version.files.iter().find(|x| x.primary) {
             Some(x) => x,
             // This is desired behaviour, as described in https://github.com/modrinth/labrinth/issues/559
             None => &version.files[0],
-        }; 
+        };
 
         let final_name = mod_id.to_string() + ".jar";
         let mut final_path = self.mod_path.clone();
         final_path.push(final_name);
 
-        let should_download = match self.should_download(&final_path, &file.hashes.sha512, &title).await {
+        let should_download = match self
+            .should_download(&final_path, &file.hashes.sha512, &title)
+            .await
+        {
             Ok(x) => x,
             Err(error) => {
                 tracing::error!(%error, file=%final_path.display(), "Couldn't perform update checking/deletion of old file!");
-                return
+                return;
             }
         };
 
         if should_download {
             tracing::info!(file=file.filename, path=%final_path.display(), "Downloading mod");
 
-            if let Err(e) = self.client
-                .download_file(file.clone(), &final_path)
-                .await
-            {
+            if let Err(e) = self.client.download_file(file.clone(), &final_path).await {
                 tracing::error!(%e, "Couldn't download file!");
             }
         }
     }
 
     // Deletes file if it should download!
-    async fn should_download(&self, filepath: impl AsRef<Path> + Send, mod_hash: &str, mod_title: &str) -> std::io::Result<bool> {
+    async fn should_download(
+        &self,
+        filepath: impl AsRef<Path> + Send,
+        mod_hash: &str,
+        mod_title: &str,
+    ) -> std::io::Result<bool> {
         let fpath = filepath.as_ref();
         tracing::debug!("Testing if should download {}", fpath.to_string_lossy());
         if fpath.is_file() {

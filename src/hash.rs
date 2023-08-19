@@ -27,7 +27,8 @@ pub async fn async_hash_file(path: impl AsRef<Path> + Send) -> Result<String> {
     let (tx, rx) = oneshot::channel();
 
     rayon::spawn(|| {
-        tx.send(hash_file(owned)).expect("Couldn't send back async hash!");
+        tx.send(hash_file(owned))
+            .expect("Couldn't send back async hash!");
     });
 
     rx.await.expect("Couldn't get async hash!")

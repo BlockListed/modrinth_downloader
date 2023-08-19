@@ -3,15 +3,15 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use chrono::Local;
-use color_eyre::Result;
 use color_eyre::Report;
+use color_eyre::Result;
 
 use color_eyre::eyre::ContextCompat;
+use dashmap::DashMap;
 use reqwest::Client as ReqwestClient;
 use reqwest::Response;
-use tokio::fs::File;
 use serde::Deserialize;
-use dashmap::DashMap;
+use tokio::fs::File;
 use tokio::io::AsyncWrite;
 use tokio::io::AsyncWriteExt;
 use url::Url;
@@ -65,7 +65,7 @@ impl Client {
     #[tracing::instrument(skip(self))]
     pub async fn get_title(&self, mod_id_or_slug: &str) -> Result<String> {
         if let Some(title) = self.title_cache.get(mod_id_or_slug) {
-            return Ok(title.value().to_string())
+            return Ok(title.value().to_string());
         }
         let mut url = self.endpoint.clone();
 
@@ -77,7 +77,8 @@ impl Client {
 
         tracing::debug!(%url, "Getting title information!");
         let resp: ProjectInformation = self.client.get(url).send().await?.json().await?;
-        self.title_cache.insert(mod_id_or_slug.to_string(), resp.title.clone());
+        self.title_cache
+            .insert(mod_id_or_slug.to_string(), resp.title.clone());
         Ok(resp.title)
     }
 
@@ -120,7 +121,9 @@ impl Client {
         let title = self.get_title(mod_id_or_slug).await?;
         Ok(self
             .get_versions(mod_id_or_slug, game_version, loader)
-            .await?.get(0).wrap_err_with(|| format!("No version of {title} exists for {game_version}-{loader}"))?
+            .await?
+            .get(0)
+            .wrap_err_with(|| format!("No version of {title} exists for {game_version}-{loader}"))?
             .clone())
     }
 
@@ -137,18 +140,28 @@ impl Client {
             let timestamp = Local::now();
 
             let mut log_file = PathBuf::from_str("/minecraft/mods/").unwrap();
-            log_file.push(format!("download_{}_{}.log", file.filename, timestamp.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)));
+            log_file.push(format!(
+                "download_{}_{}.log",
+                file.filename,
+                timestamp.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+            ));
 
             tracing::error!(code=%resp.status() , log=%log_file.display(), "Download failed! Saving log file.");
 
             let mut out = File::create(log_file).await?;
             save_resp(&mut resp, &mut out).await?;
 
-            return Err(Report::msg(format!("Download failed with code - {}", resp.status())))
+            return Err(Report::msg(format!(
+                "Download failed with code - {}",
+                resp.status()
+            )));
         }
 
         let mut out = File::create(path).await.map_err(|x| {
-            std::io::Error::new(x.kind(), format!("Couldn't create file {}.", path.display()))
+            std::io::Error::new(
+                x.kind(),
+                format!("Couldn't create file {}.", path.display()),
+            )
         })?;
 
         save_resp(&mut resp, &mut out).await?;
@@ -158,14 +171,21 @@ impl Client {
         if crate::hash::async_hash_file(path).await? == file.hashes.sha512 {
             tracing::debug!(dest = ?path, file.hashes.sha512, "Correct shasum for downloaded file!");
         } else {
-            panic!("CORRUPTION WHILE CHECKING DOWNLOADED FILE! {} - {}", file.filename, resp.status());
+            panic!(
+                "CORRUPTION WHILE CHECKING DOWNLOADED FILE! {} - {}",
+                file.filename,
+                resp.status()
+            );
         }
 
         Ok(())
     }
 }
 
-pub async fn save_resp(resp: &mut Response, out: &mut (impl AsyncWrite + std::marker::Unpin + Send)) -> Result<()> {
+pub async fn save_resp(
+    resp: &mut Response,
+    out: &mut (impl AsyncWrite + std::marker::Unpin + Send),
+) -> Result<()> {
     // Chunk to reduce memory usage
     while let Some(data) = resp.chunk().await? {
         out.write_all(&data).await?;
