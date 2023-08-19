@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use color_eyre::eyre::WrapErr;
+
 use crate::modrinth::Client;
 
 use crate::hash;
@@ -16,7 +18,7 @@ impl Downloader {
         let client = Client::new();
 
         if !mod_path.exists() {
-            std::fs::create_dir(&mod_path).unwrap();
+            std::fs::create_dir(&mod_path).wrap_err("Couldn't create mod folder").unwrap();
             tracing::info!("Mod path didn't exist created directory!");
         }
 
