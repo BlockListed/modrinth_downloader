@@ -34,8 +34,8 @@ impl Downloader {
         }
     }
 
-    pub async fn download(&self, mod_id: String) {
-        let title = match self.client.get_title(&mod_id).await {
+    pub fn download(&self, mod_id: String) {
+        let title = match self.client.get_title(&mod_id) {
             Ok(x) => x,
             Err(error) => {
                 tracing::error!(%error, mod_id, "Couldn't get title of mod!");
@@ -46,7 +46,6 @@ impl Downloader {
         let version = match self
             .client
             .get_newest_version(&mod_id, &self.version, &self.loader)
-            .await
         {
             Ok(x) => x,
             Err(error) => {
@@ -67,7 +66,6 @@ impl Downloader {
 
         let should_download = match self
             .should_download(&final_path, &file.hashes.sha512, &title)
-            .await
         {
             Ok(x) => x,
             Err(error) => {
@@ -79,14 +77,14 @@ impl Downloader {
         if should_download {
             tracing::info!(file=file.filename, path=%final_path.display(), "Downloading mod");
 
-            if let Err(e) = self.client.download_file(file.clone(), &final_path).await {
+            if let Err(e) = self.client.download_file(file.clone(), &final_path) {
                 tracing::error!(%e, "Couldn't download file!");
             }
         }
     }
 
     // Deletes file if it should download!
-    async fn should_download(
+    fn should_download(
         &self,
         filepath: impl AsRef<Path> + Send,
         mod_hash: &str,
@@ -95,7 +93,7 @@ impl Downloader {
         let fpath = filepath.as_ref();
         tracing::debug!("Testing if should download {}", fpath.to_string_lossy());
         if fpath.is_file() {
-            let h = hash::async_hash_file(fpath).await.unwrap();
+            let h = hash::hash_file(fpath).unwrap();
             if h == mod_hash {
                 tracing::info!("Skipping {mod_title}, newest version already downloaded.");
                 tracing::debug!(filepath=%fpath.display(), "skipped");

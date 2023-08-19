@@ -1,7 +1,7 @@
 use std::{env::var_os, path::PathBuf};
+use std::fs::read;
 
 use serde::Deserialize;
-use tokio::fs::read;
 
 const DEFAULT_CONFIG_PATH: &str = "/config/config.toml";
 
@@ -42,6 +42,7 @@ impl From<(toml::de::Error, String)> for ConfigError {
     }
 }
 
+// This exists to print the config path on errors.
 macro_rules! handle_error {
     ($e:expr, $p:expr) => {
         match $e {
@@ -51,7 +52,7 @@ macro_rules! handle_error {
     };
 }
 
-pub async fn get_config() -> Result<Configuration, ConfigError> {
+pub fn get_config() -> Result<Configuration, ConfigError> {
     let config_path: PathBuf = var_os("CONFIG_PATH")
         .unwrap_or_else(|| {
             tracing::debug!("Using default CONFIG_PATH, because enviroment is not set.");
@@ -59,7 +60,7 @@ pub async fn get_config() -> Result<Configuration, ConfigError> {
         })
         .into();
     tracing::debug!(path=%config_path.display(), "Getting configration!");
-    let file = handle_error!(read(&config_path).await, config_path);
+    let file = handle_error!(read(&config_path), config_path);
     Ok(handle_error!(
         toml::from_slice(file.as_slice()),
         config_path

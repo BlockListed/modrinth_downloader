@@ -1,4 +1,5 @@
-use futures::{stream::FuturesUnordered, StreamExt};
+use std::thread::spawn;
+use std::sync::Arc;
 
 use color_eyre::Result;
 
@@ -7,8 +8,7 @@ mod download;
 mod hash;
 mod modrinth;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     color_eyre::install()?;
 
     tracing_subscriber::FmtSubscriber::builder()
@@ -18,17 +18,22 @@ async fn main() -> Result<()> {
         )
         .init();
 
-    let c = configuration::get_config().await?;
+    let c = configuration::get_config()?;
 
-    let d = download::Downloader::new(c.mod_path, c.version, c.loader);
+    let d = Arc::new(download::Downloader::new(c.mod_path, c.version, c.loader));
 
-    let futures = FuturesUnordered::new();
+    let mut handles = Vec::new();
 
     for i in c.mod_ids {
-        futures.push(d.download(i));
+        let dler = Arc::clone(&d);
+        handles.push(spawn(move || {
+            dler.download(i);
+        }))
     }
 
-    futures.collect::<()>().await;
+    for h in handles {
+        h.join().unwrap();
+    }
 
     Ok(())
 }
