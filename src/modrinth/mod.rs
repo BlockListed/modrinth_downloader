@@ -74,8 +74,10 @@ impl Client {
 
         tracing::debug!(%url, "Getting title information!");
         let resp: ProjectInformation = self.client.get(url.as_str()).call()?.into_json()?;
+
         self.title_cache
             .insert(mod_id_or_slug.to_string(), resp.title.clone());
+
         Ok(resp.title)
     }
 
@@ -118,7 +120,7 @@ impl Client {
         Ok(self
             .get_versions(mod_id_or_slug, game_version, loader)?
             .get(0)
-            .ok_or_else(|| color_eyre::eyre::Error::msg(format!("No version of {title} exists for {game_version}-{loader}")))?
+            .ok_or_else(|| color_eyre::eyre::eyre!("No version of {title} exists for {game_version}-{loader}"))?
             .clone())
     }
 
@@ -183,7 +185,7 @@ impl Client {
 
 pub fn save_resp(
     resp: Response,
-    out: &mut (impl Write + std::marker::Unpin + Send),
+    out: &mut impl Write,
 ) -> Result<()> {
     // Chunk to reduce memory usage
     std::io::copy(&mut resp.into_reader(), out)?;
