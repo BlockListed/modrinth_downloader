@@ -1,4 +1,3 @@
-use std::thread::spawn;
 use std::sync::Arc;
 
 use color_eyre::Result;
@@ -14,7 +13,7 @@ fn main() -> Result<()> {
     tracing_subscriber::FmtSubscriber::builder()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "modrinth_downloader=info,tracing_unwrap=error".into()),
+                .unwrap_or_else(|_| "modrinth_downloader=info".into()),
         )
         .init();
 
@@ -22,18 +21,14 @@ fn main() -> Result<()> {
 
     let d = Arc::new(download::Downloader::new(c.mod_path, c.version, c.loader));
 
-    let mut handles = Vec::new();
-
-    for i in c.mod_ids {
-        let dler = Arc::clone(&d);
-        handles.push(spawn(move || {
-            dler.download(i);
-        }))
-    }
-
-    for h in handles {
-        h.join().unwrap();
-    }
+    std::thread::scope(|s| {
+        for i in c.mod_ids {
+            let dler = Arc::clone(&d);
+            s.spawn(move || {
+                dler.download(i);
+            });
+        }
+    });
 
     Ok(())
 }
