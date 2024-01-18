@@ -56,6 +56,7 @@ impl Downloader {
             }
         };
 
+        // TODO: Should probably be inside modrinth client
         let file = match version.files.iter().find(|x| x.primary) {
             Some(x) => x,
             // This is desired behaviour, as described in https://github.com/modrinth/labrinth/issues/559
@@ -107,6 +108,7 @@ impl Downloader {
                 Ok(true)
             }
         } else {
+            // TODO: This log should probably be in download()
             tracing::debug!(mod_title, filepath=%fpath.display(), "Mod not found. Downloading now!");
             Ok(true)
         }
