@@ -24,10 +24,14 @@ jobs:
         run: |
           cross build --release --target ${{ matrix.target }}
 
+      - name: Rename build results
+        run: |
+          mv target/${{ matrix.target }}/release/modrinth-downloader modrinth-downloader-${{ matrix.target }}
+
       - name: Upload build result
         uses: actions/upload-artifact@v4
         with:
-          path: target/${{ matrix.target }}/release/modrinth-downloader
+          path: modrinth-downloader-${{ matrix.target }}
           name: modrinth-downloader-${{ matrix.target }}
 
   release:
@@ -39,6 +43,8 @@ jobs:
     steps:
       - name: Download build results
         uses: actions/download-artifact@v4
+      - name: List build results
+        run: tree
       - uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
