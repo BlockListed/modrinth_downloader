@@ -49,4 +49,4 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            modrinth-downloader-*
+            ./*/modrinth-downloader-*
