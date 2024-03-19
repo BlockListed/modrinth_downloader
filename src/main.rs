@@ -17,7 +17,7 @@ fn main() -> Result<()> {
         )
         .init();
 
-    let c = configuration::get_config()?;
+    let c = configuration::get_config();
 
     let d = Arc::new(download::Downloader::new(c.mod_path, c.version, c.loader));
 

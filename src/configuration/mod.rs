@@ -1,68 +1,40 @@
-use std::{env::var_os, path::PathBuf};
-use std::fs::read;
+use std::{env::var, path::PathBuf};
 
+use config::Config;
 use serde::Deserialize;
 
 const DEFAULT_CONFIG_PATH: &str = "/config/config.toml";
 
+fn default_mod_path() -> PathBuf {
+    PathBuf::from("/minecraft/mods")
+}
+
+fn default_loader() -> String {
+    "fabric".to_string()
+}
+
 #[derive(Deserialize)]
 pub struct Configuration {
+    #[serde(default = "default_mod_path")]
     pub mod_path: PathBuf,
     pub version: String,
+    #[serde(default = "default_loader")]
     pub loader: String,
     pub mod_ids: Vec<String>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum ConfigError {
-    #[error("Couldn't read configuration from `{path}` because `{error}`. Path can be changed using `CONFIG_PATH` env.")]
-    IOError { error: std::io::Error, path: String },
-    #[error("Couldn't parse configuration at `{path}` because `{error}`.")]
-    TOMLError {
-        error: toml::de::Error,
-        path: String,
-    },
-}
-
-impl From<(std::io::Error, String)> for ConfigError {
-    fn from(value: (std::io::Error, String)) -> Self {
-        Self::IOError {
-            error: value.0,
-            path: value.1,
-        }
-    }
-}
-
-impl From<(toml::de::Error, String)> for ConfigError {
-    fn from(value: (toml::de::Error, String)) -> Self {
-        Self::TOMLError {
-            error: value.0,
-            path: value.1,
-        }
-    }
-}
-
-// This exists to print the config path on errors.
-macro_rules! handle_error {
-    ($e:expr, $p:expr) => {
-        match $e {
-            Ok(x) => x,
-            Err(e) => return Err(ConfigError::from((e, $p.to_string_lossy().into_owned()))),
-        }
-    };
-}
-
-pub fn get_config() -> Result<Configuration, ConfigError> {
-    let config_path: PathBuf = var_os("CONFIG_PATH")
-        .unwrap_or_else(|| {
-            tracing::debug!("Using default CONFIG_PATH, because enviroment is not set.");
+pub fn get_config() -> Configuration {
+    let config_path: PathBuf = var("CONFIG_PATH")
+        .unwrap_or_else(|err| {
+            tracing::debug!(%err, "Using default CONFIG_PATH");
             DEFAULT_CONFIG_PATH.to_string().into()
         })
         .into();
-    tracing::debug!(path=%config_path.display(), "Getting configration!");
-    let file = handle_error!(read(&config_path), config_path);
-    Ok(handle_error!(
-        toml::from_slice(file.as_slice()),
-        config_path
-    ))
+    tracing::debug!(path=%config_path.display(), "found configuration path");
+
+    let config_builder = Config::builder()
+        .add_source(config::File::new(config_path.to_str().unwrap(), config::FileFormat::Toml).required(true))
+        .add_source(config::Environment::default());
+
+    config_builder.build().unwrap().try_deserialize().unwrap()
 }
